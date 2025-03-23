@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="052f39cd-ecdd-4b0a-b277-c84433383bf5" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="25911b6e-e3d8-40cc-9236-b32564a5ef95" >
+		<file:connection workingDir="#[p('app.home')]" />
+	</file:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="02f56b2b-3142-46da-9617-9e8465876798" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="migration" />
+	</db:config>
+	<flow name="migrationFlow" doc:id="db2157e4-44cc-4c00-8d4c-71ff2034e89e" >
+		<http:listener doc:name="Listener" doc:id="00d21284-89cb-4d32-8572-a8c62528a8a1" config-ref="HTTP_Listener_config" path="/migrate"/>
+		<file:read doc:name="Read" doc:id="6b053114-7c54-4309-ae2f-6b4269cc72c6" config-ref="File_Config" path="data.csv" outputMimeType='application/csv'>
+		</file:read>
+		<ee:transform doc:name="Transform Message" doc:id="71319770-4b2c-44d5-9d6a-5fa590f42baf">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+@StreamCapable()
+input payload application/csv
+output application/json deferred=true
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[0]" doc:name="Set Variable" doc:id="243a1474-ce54-474f-a26a-50d2cc1f6b5f" variableName="batch" />
+		<foreach doc:name="For Each" doc:id="8fb95374-e74b-43ed-a1dd-72898e9931ff" batchSize="10000">
+			<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="00123a7e-1f2d-4037-8d8c-e814c4088818" variableName="batch" />
+			<set-variable value="#[now()]" doc:name="Set Variable" doc:id="d95f3466-d53b-4b71-a9ea-6dd83abe0581" variableName="startTime" />
+			<db:bulk-insert doc:name="Bulk insert" doc:id="ceb17c85-35b2-475e-9de4-0010414409c8" config-ref="Database_Config" >
+				<db:bulk-input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload map
+{
+	Country: $.Country,
+	Year: $.Year,
+	Temperature: $.Temperature,
+	GDP: $.'GDP Per Capita (USD)',
+	Coal: $.Coal,
+	Oil: $.Oil,
+	Gas: $.Gas,
+	Cement: $.Cement,
+	Flaring: $.Flaring,
+	Per_Capita: $.'Per Capita'
+}]]]></db:bulk-input-parameters>
+				<db:sql ><![CDATA[INSERT INTO emissions
+VALUES(:Country, :Year, :Temperature, :GDP, :Coal, :Oil, :Gas, :Cement, :Flaring, :Per_Capita)]]></db:sql>
+			</db:bulk-insert>
+			<logger level="INFO" doc:name="Logger" doc:id="4f013e11-c827-40fa-a86c-40a32ece3bc8" message='Time Taken --------------&gt;#[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}]' />
+		</foreach>
+	</flow>
+	
+	<flow name="migrationFlow-withoutStreaming" doc:id="52f039a6-4f93-4efa-a01a-377e0645f878" >
+		<http:listener doc:name="Listener" doc:id="08d88e8c-8ae4-4342-8f67-2bcf6fc669ec" config-ref="HTTP_Listener_config" path="/migrateWithoutStreaming"/>
+		<file:read doc:name="Read" doc:id="6a33fd94-2d52-439b-a83b-63b6aaa294ad" config-ref="File_Config" path="data.csv" outputMimeType='application/csv; streaming=false'/>
+		<logger level="INFO" doc:name="Logger" doc:id="aa27992c-ad21-4db8-b957-f31fe1668ff0" message="#[sizeOf(payload)]"/>
+		<ee:transform doc:name="Transform Message" doc:id="a188b6c8-c7a3-4f07-835a-addf0e83cf62" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+input payload application/csv
+output application/json deferred=true
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[0]" doc:name="Set Variable" doc:id="ec89c811-c29e-49d8-aa16-6cebf56630ce" variableName="batch"/>
+		<foreach doc:name="For Each" doc:id="a0d01cbb-4b90-4a1e-a4ad-710677ea8c0e" batchSize="10000">
+			<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="0c12d3e6-a3ec-484b-870f-6eb538fbd504" variableName="batch"/>
+			<set-variable value="#[now()]" doc:name="Set Variable" doc:id="085ccf9f-046b-4655-9100-99a362986256" variableName="startTime"/>
+			<db:bulk-insert doc:name="Bulk insert" doc:id="e89b3fb6-8976-405d-b065-1f4a24d5a832" config-ref="Database_Config">
+				<db:bulk-input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload map
+{
+	Country: $.Country,
+	Year: $.Year,
+	Temperature: $.Temperature,
+	GDP: $.'GDP Per Capita (USD)',
+	Coal: $.Coal,
+	Oil: $.Oil,
+	Gas: $.Gas,
+	Cement: $.Cement,
+	Flaring: $.Flaring,
+	Per_Capita: $.'Per Capita'
+}]]]></db:bulk-input-parameters>
+				<db:sql ><![CDATA[INSERT INTO emissions
+VALUES(:Country, :Year, :Temperature, :GDP, :Coal, :Oil, :Gas, :Cement, :Flaring, :Per_Capita)
+]]></db:sql>
+			</db:bulk-insert>
+			<logger level="INFO" doc:name="Logger" doc:id="9bec45e6-080f-43fe-a392-75ee6996e481" message='Time Taken for batch-#[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}] seconds'/>
+		
+</foreach>
+	</flow>
+</mule>

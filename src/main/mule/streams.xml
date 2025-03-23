@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="inMemoryBufferSizeOverflowFlow" doc:id="893b6119-c91e-4620-b9be-381c10e79e53" >
+		<http:listener doc:name="Listener" doc:id="57f83b32-3db7-4154-a085-71540f8e7baf" config-ref="HTTP_Listener_config" path="/api/v1/streams/inMemoryBufferSizeOverflow"/>
+		<file:read doc:name="Read-data" doc:id="47560e6c-eede-4cb0-bf86-c0b91795351c" config-ref="File_Config" path="data.csv" outputMimeType="application/csv">
+			<repeatable-in-memory-stream maxBufferSize="8000"/>
+		</file:read>
+		<choice doc:name="Choice" doc:id="077b4d5c-c9e4-4d37-b9ba-6985a726cd42" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="8d77f323-6bd6-42ab-a41d-25061f18a8c7" message="Flow: inMemoryBufferSizeOverflow, Message: Payload is not empty"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="32caa4bb-75b7-4f51-8711-0dbe30d04553" message="Flow: inMemoryBufferSizeOverflow, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="inMemoryValidBufferSizeFlow" doc:id="ad5bef6d-4afa-4814-837b-b43ce284013b" >
+		<http:listener doc:name="Listener" doc:id="72c0b6d7-4992-4f14-98de-c5cfd30a5c34" config-ref="HTTP_Listener_config" path="/api/v1/streams/inMemoryValidBufferSize"/>
+		<file:read doc:name="Read-data" doc:id="c4354124-d08f-457a-97b0-a6c7053abc24" config-ref="File_Config" path="data.csv" outputMimeType="application/csv">
+			<repeatable-in-memory-stream maxBufferSize="8000"/>
+		</file:read>
+		<choice doc:name="Choice" doc:id="c9c6a309-f1f0-4c2c-b14c-29a54418e300" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="b35cb71f-34a9-4bdc-9b90-95798604448e" message="Flow: inMemoryValidBufferSize, Message: Payload is not empty"/>
+				<set-variable value="#[0]" doc:name="Set Variable" doc:id="0a2ec8cb-6022-40b7-8ebc-8d51a75bf7fa" variableName="batch" />
+		<foreach doc:name="For Each" doc:id="56378694-d843-4c7c-af07-833a314b2e33" batchSize="10000">
+			<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="e91e1c37-2cc1-4a8b-be7e-2589c7efa12a" variableName="batch" />
+			<set-variable value="#[now()]" doc:name="Set Variable" doc:id="b5a9ec4d-5119-40af-8cf6-a9b95440e46c" variableName="startTime" />
+			<db:bulk-insert doc:name="Bulk insert" doc:id="fd6457cc-8e95-4854-b200-282cbc50bf99" config-ref="Database_Config" >
+				<db:bulk-input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+flatten(payload) map
+{
+	Country: $.Country,
+	Year: $.Year,
+	Temperature: $.Temperature,
+	GDP: $.'GDP Per Capita (USD)',
+	Coal: $.Coal,
+	Oil: $.Oil,
+	Gas: $.Gas,
+	Cement: $.Cement,
+	Flaring: $.Flaring,
+	Per_Capita: $.'Per Capita'
+}]]]></db:bulk-input-parameters>
+				<db:sql ><![CDATA[INSERT INTO emissions
+VALUES(:Country, :Year, :Temperature, :GDP, :Coal, :Oil, :Gas, :Cement, :Flaring, :Per_Capita)]]></db:sql>
+			</db:bulk-insert>
+			<logger level="INFO" doc:name="Logger" doc:id="08db596b-e55c-4047-932b-509a383ab644" message='Time Taken to process Batch - #[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}] seconds' />
+		</foreach>
+			
+</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="668f49f0-4661-4a6c-a42d-78d6b75da71d" message="Flow: inMemoryValidBufferSize, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="fileStoreStreamingFlow" doc:id="36af6c93-99fc-42f8-a81a-3e0b2aef158a" >
+		<http:listener doc:name="Listener" doc:id="d1b4994d-998b-4f2f-a0a9-e685f0a0d243" config-ref="HTTP_Listener_config" path="/api/v1/streams/fileStoreStreaming"/>
+		<file:read doc:name="Read-data" doc:id="99cc8569-d085-434c-845e-38694597c064" config-ref="File_Config" path="data.csv" outputMimeType="application/csv">
+		</file:read>
+		<choice doc:name="Choice" doc:id="9900fcdd-62ff-4964-8982-4338f7e3e296" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="3c9de0b5-2247-46af-8cca-e7a2a956e3a0" message="Flow: fileStoreStreaming, Message: Payload is not empty"/>
+				<set-variable value="#[0]" doc:name="Set Variable" doc:id="e5f0759e-e858-4da1-ba14-82fd78446c1c" variableName="batch" />
+		<foreach doc:name="For Each" doc:id="6d4006b5-0483-4424-a6a9-f7175f991512" batchSize="10000">
+			<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="efa23a7f-2c2b-4973-bb5e-9fc5de6fad73" variableName="batch" />
+			<set-variable value="#[now()]" doc:name="Set Variable" doc:id="f886bd55-e037-443a-95c2-fcacee9291ef" variableName="startTime" />
+			<db:bulk-insert doc:name="Bulk insert" doc:id="e9ce0b9b-51b4-44d2-a2fc-e4d65cc3b546" config-ref="Database_Config" >
+				<db:bulk-input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+flatten(payload) map
+{
+	Country: $.Country,
+	Year: $.Year,
+	Temperature: $.Temperature,
+	GDP: $.'GDP Per Capita (USD)',
+	Coal: $.Coal,
+	Oil: $.Oil,
+	Gas: $.Gas,
+	Cement: $.Cement,
+	Flaring: $.Flaring,
+	Per_Capita: $.'Per Capita'
+}]]]></db:bulk-input-parameters>
+				<db:sql ><![CDATA[INSERT INTO emissions
+VALUES(:Country, :Year, :Temperature, :GDP, :Coal, :Oil, :Gas, :Cement, :Flaring, :Per_Capita)]]></db:sql>
+			</db:bulk-insert>
+			<logger level="INFO" doc:name="Logger" doc:id="361cfa07-bb5c-4dd7-bebc-be5a08a81674" message='Time Taken to process Batch - #[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}] seconds' />
+		</foreach>
+			
+</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="3f98be98-fdc4-41aa-a68f-924d097b397f" message="Flow: fileStoreStreaming, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="nonRepetableStreamMultiUseFlow" doc:id="8d25d292-aed2-42e2-b586-5b629ca93d99" >
+		<http:listener doc:name="Listener" doc:id="26dc376e-5963-4602-9457-4d39d816c3c3" config-ref="HTTP_Listener_config" path="/api/v1/streams/nonRepetableStreamMultiUse"/>
+		<file:read doc:name="Read-data" doc:id="3d0113bf-7557-4008-930c-0fbbfe1ea41a" config-ref="File_Config" path="data.csv" outputMimeType="application/csv">
+			<non-repeatable-stream />
+		
+</file:read>
+		<logger level="INFO" doc:name="Logger" doc:id="bad9266c-ae4c-4940-9d76-58157c6c9bea" message="First Consumption------#[sizeOf(payload)]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1e0524cc-44d5-496c-a917-28bd5c136903" message="Second consumption--------------------#[payload[0]]"/>
+		<choice doc:name="Choice" doc:id="babff59f-51a9-4aa9-b472-6a18c24f5ac8" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="41f88f0f-ddb2-47f3-9be9-d8389ecc164f" message="Flow: nonRepetableStreamMultiUse, Message: Payload is not empty"/>
+			
+</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="b326a560-eb1c-4c9c-b4cd-362cbd1ee29b" message="Flow: nonRepetableStreamMultiUse, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="nonRepeatableStreamSingleUseFlow" doc:id="5dd98287-2ea2-4127-a3de-2b00a0b43058" >
+		<http:listener doc:name="Listener" doc:id="1f1c407f-80cf-4ee9-8033-574d6813635c" config-ref="HTTP_Listener_config" path="/api/v1/streams/nonRepeatableStreamSingleUse"/>
+		<file:read doc:name="Read-data" doc:id="4c525f33-b667-41a2-83e0-b4227d364e54" config-ref="File_Config" path="data.csv" outputMimeType="application/csv">
+			<repeatable-in-memory-stream maxBufferSize="8000"/>
+		</file:read>
+		<choice doc:name="Choice" doc:id="dab9e73f-eb16-4d4a-9034-504e6496040a" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="8c8ab9cf-6d08-4912-a81d-ac592da57240" message="Flow: nonRepeatableStreamSingleUse, Message: Payload is not empty"/>
+				<set-variable value="#[0]" doc:name="Set Variable" doc:id="cc2fb7f4-3536-4573-af7f-71141e0af034" variableName="batch" />
+		<foreach doc:name="For Each" doc:id="6700051b-727c-4cf1-a8c5-fb377c35b38b" batchSize="10000">
+			<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="825a1336-e1d0-49e4-bac5-addbb0e2b93b" variableName="batch" />
+			<set-variable value="#[now()]" doc:name="Set Variable" doc:id="50a0a933-f29d-475c-8c11-309afdd21cd9" variableName="startTime" />
+			<db:bulk-insert doc:name="Bulk insert" doc:id="e237cf9d-af1a-41c0-947b-8bdef7f7104a" config-ref="Database_Config" >
+				<db:bulk-input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+flatten(payload) map
+{
+	Country: $.Country,
+	Year: $.Year,
+	Temperature: $.Temperature,
+	GDP: $.'GDP Per Capita (USD)',
+	Coal: $.Coal,
+	Oil: $.Oil,
+	Gas: $.Gas,
+	Cement: $.Cement,
+	Flaring: $.Flaring,
+	Per_Capita: $.'Per Capita'
+}]]]></db:bulk-input-parameters>
+				<db:sql ><![CDATA[INSERT INTO emissions
+VALUES(:Country, :Year, :Temperature, :GDP, :Coal, :Oil, :Gas, :Cement, :Flaring, :Per_Capita)]]></db:sql>
+			</db:bulk-insert>
+			<logger level="INFO" doc:name="Logger" doc:id="b464b487-df83-4916-b1c2-ab4125203427" message='Time Taken to process Batch - #[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}] seconds' />
+		</foreach>
+			
+</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="ce6b3163-f1d8-4a1f-8b30-cfbf92af20b1" message="Flow: nonRepeatableStreamSingleUse, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
