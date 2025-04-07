@@ -16,4 +16,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="02f56b2b-3142-46da-9617-9e8465876798" >
 		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="migration" />
 	</db:config>
+	<file:config name="File_Config1" doc:name="File Config" doc:id="b15cd5c9-c788-4463-a840-4f89831d8833" >
+		<file:connection workingDir="C:\Users\reddy\Desktop\iterators" />
+	</file:config>
 </mule>

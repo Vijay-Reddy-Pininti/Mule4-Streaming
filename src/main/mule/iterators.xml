@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="nonRepeatableIteratorMultiUseFlow" doc:id="444aa715-d99c-4742-9e26-ae0a71b8c9e4" >
+		<http:listener doc:name="Listener" doc:id="7f494cbb-086e-403c-9259-9b2b88fc3122" config-ref="HTTP_Listener_config" path="/api/v1/iterators/nonRepetableIteratorMultiUse">
+			<http:response >
+				<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></http:body>
+			</http:response>
+		</http:listener>
+		<db:select doc:name="Select" doc:id="c1e40e80-23b6-48e1-8264-a8a128208e62" config-ref="Database_Config" queryTimeout="2" queryTimeoutUnit="MINUTES">
+			<non-repeatable-iterable />
+			<db:sql ><![CDATA[select * from emissions where Country=:country limit 5]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	country: 0 as Number
+}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="e764d9ef-894b-4088-8c00-af4fd79d55a7" message="Raw payload--------------#[payload]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1a423048-6fdf-4715-a333-3f33c222fe37" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="60be1818-b826-4f62-a056-cfd9877f7e3b" message="after consumption-----------------#[payload]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="70641c29-b314-48eb-9d3a-006d9c383759" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<choice doc:name="Choice" doc:id="189b3c71-ad6b-4b62-9c00-beddbb8e8597" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="20d017fd-df34-41d6-a1d5-829513c7d2b9" message="Flow: nonRepetableIteratorMultiUse, Message: Payload is not empty" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="5d86b50f-a060-4712-adfb-02294eb9d3fd" message="Flow: nonRepetableIteratorMultiUse, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="nonRepetableIteratorMultiUseExhaustFlow" doc:id="2a13d7ee-2d1f-447f-b002-2be0ea0ca81c" >
+		<http:listener doc:name="Listener" doc:id="0b4c7cae-f21e-488e-8703-4160368b637f" config-ref="HTTP_Listener_config" path="/api/v1/iterators/nonRepetableIteratorMultiUseExhaust">
+			<http:response >
+				<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></http:body>
+			</http:response>
+		</http:listener>
+		<db:select doc:name="Select" doc:id="9a92f675-1a23-4336-ba4a-1d5b13ceca1e" config-ref="Database_Config" queryTimeout="2" queryTimeoutUnit="MINUTES">
+			<non-repeatable-iterable />
+			<db:sql ><![CDATA[select * from emissions where Country=:country limit 5]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	country: 0 as Number
+}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="f0822a9c-6a1e-4e0e-ba4b-2354b38fa775" message="#[%dw 2.0&#10;&#10;output application/json&#10;&#10;---&#10;&#10;payload[0]]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c107518f-c3a3-4163-ae21-47b30d336304" message="#[%dw 2.0&#10;&#10;output application/json&#10;&#10;---&#10;&#10;payload[0]]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3f07e698-320b-43e1-b253-75289deaeb60" message="#[%dw 2.0&#10;&#10;output application/json&#10;&#10;---&#10;&#10;payload[0]]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="7c9f57b5-2cf1-4f48-a6ab-6f639f2414f2" message="#[%dw 2.0&#10;&#10;output application/json&#10;&#10;---&#10;&#10;payload[0]]" />
+		<logger level="INFO" doc:name="Logger" doc:id="0baeb362-fdb2-425e-b3d4-1feba01e2f8c" message="#[%dw 2.0&#10;&#10;output application/json&#10;&#10;---&#10;&#10;payload[0]]" />
+		<logger level="INFO" doc:name="Logger" doc:id="9823e2e2-b297-44a8-bcad-f7d8db5f0c26" message="#[%dw 2.0
+&#10;output application/json
+&#10;---
+&#10;payload]"/>
+		<choice doc:name="Choice" doc:id="79216f45-9b5f-4495-ae94-b4c8ba4a58e6" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="718b0d2a-a5e5-4020-92a3-bfdd8249b879" message="Flow: nonRepetableIteratorMultiUseExhaust, Message: Payload is not empty" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="fb2f6bf8-4a0e-4285-a372-b36015cd289a" message="Flow: nonRepetableIteratorMultiUseExhaust, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	
+</flow>
+	<flow name="nonRepeatableIteratorSingleUseFlow" doc:id="e9c24e82-276e-42fe-9d10-bac4c671bd49" >
+		<http:listener doc:name="Listener" doc:id="e4db09a2-443f-471c-b9f3-d9100d082f66" config-ref="HTTP_Listener_config" path="/api/v1/iterators/nonRepeatableIteratorSingleUse">
+			<http:response >
+				<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></http:body>
+			</http:response>
+		</http:listener>
+		<db:select doc:name="Select" doc:id="5fce326d-3621-4e58-b98f-16e2a820b87a" config-ref="Database_Config" queryTimeout="2" queryTimeoutUnit="MINUTES">
+			<non-repeatable-iterable />
+			<db:sql ><![CDATA[select * from emissions where Country=:country]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	country: 0 as Number
+}]]]></db:input-parameters>
+		
+</db:select>
+		<choice doc:name="Choice" doc:id="d9d51b7e-0f94-45c0-9512-5cebd901b91c" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="9c3423b2-2b17-4745-9858-52c6513dda3c" message="Flow: nonRepeatableIteratorSingleUse, Message: Payload is not empty" />
+				<set-variable value="#[0]" doc:name="Set Variable" doc:id="da3b19ef-98b8-4ced-9eeb-6ef2a2d97a45" variableName="batch" />
+				<foreach doc:name="For Each" doc:id="8cf40afa-2270-460c-813b-c3a278027f5e" batchSize="500">
+					<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="322431e6-6594-4065-9e4c-66fdc8f72e24" variableName="batch" />
+					<set-variable value="#[now()]" doc:name="Set Variable" doc:id="3a70a424-cc01-481e-b2ef-9c258b170394" variableName="startTime" />
+					<file:write doc:name="Write" doc:id="99f68c61-4d03-4c80-995f-459272c9c547" config-ref="File_Config1" mode="APPEND" path="nonRepeatableIteratorSingleUse.json">
+						<file:content ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></file:content>
+					</file:write>
+					<logger level="INFO" doc:name="Logger" doc:id="89bae67f-ad1e-436e-a783-738d9ad3fb0c" message='Time Taken to process Batch - #[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}] seconds' />
+				</foreach>
+				<logger level="INFO" doc:name="Logger" doc:id="1408a5c2-7e60-4fa6-bc14-6d7b06468a5d" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"after": payload&#10;}]'/>
+			
+</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="f0b34623-3943-4d94-a9d5-9d318d37057b" message="Flow: nonRepeatableIteratorSingleUse, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="inMemoryIteratorBufferSizeOverflowFlow" doc:id="9e5b415c-b726-4dc4-9ad6-cced362fb838" >
+		<http:listener doc:name="Listener" doc:id="dfd40d64-18d5-4a05-b48d-d20e99d2f217" config-ref="HTTP_Listener_config" path="/api/v1/iterators/inMemoryIteratorBufferSizeOverflow">
+			<http:response >
+				<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></http:body>
+			</http:response>
+		</http:listener>
+		<db:select doc:name="Select" doc:id="17b0c56b-97b0-40d6-a599-e6302c912d95" config-ref="Database_Config" queryTimeout="2" queryTimeoutUnit="MINUTES">
+			<repeatable-in-memory-iterable />
+			<db:sql ><![CDATA[select * from emissions where Country=0]]></db:sql>
+		</db:select>
+		<choice doc:name="Choice" doc:id="9c483a29-4b5d-4bf7-bbca-0dc4c89c08e3" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="7b01edc9-b3d0-4843-901c-137e8f77940d" message="Flow: inMemoryIteratorBufferSizeOverflow, Message: Payload is not empty" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="6ca7c830-4f2e-48d1-a72b-671ba202a3f5" message="Flow: inMemoryIteratorBufferSizeOverflowFlow, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="inMemoryIteratorValidBufferSize" doc:id="376d4bea-0a34-4fb5-8032-45a17ddd6f75" >
+		<http:listener doc:name="Listener" doc:id="adef9fad-5bad-406a-b50d-7b506768ff70" config-ref="HTTP_Listener_config" path="/api/v1/iterators/inMemoryIteratorValidBufferSize">
+			<http:response >
+				<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></http:body>
+			</http:response>
+		</http:listener>
+		<db:select doc:name="Select" doc:id="ffc14bf3-8366-4020-8158-a777ddbfe6c6" config-ref="Database_Config" queryTimeout="2" queryTimeoutUnit="MINUTES">
+			<repeatable-in-memory-iterable maxBufferSize="1000" />
+			<db:sql ><![CDATA[select * from emissions where Country=:country]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	country: 0 as Number
+}]]]></db:input-parameters>
+		
+</db:select>
+		<choice doc:name="Choice" doc:id="ee921bf1-7010-4f44-a08f-b6735309cbe8" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="6cfcf10e-1ccd-43e9-992c-6d544b9d56cd" message="Flow: inMemoryIteratorValidBufferSize, Message: Payload is not empty" />
+				<set-variable value="#[0]" doc:name="Set Variable" doc:id="9cf788f5-a1b4-49dc-9dec-43936c276db6" variableName="batch" />
+				<foreach doc:name="For Each" doc:id="dc3ad0ca-1e64-42ee-a946-7f3920cbe6a0" batchSize="500">
+					<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="f96169e7-e057-4a47-ae2c-9195d6fb6887" variableName="batch" />
+					<set-variable value="#[now()]" doc:name="Set Variable" doc:id="b66e33ae-8369-42d6-a470-25d30b01fc92" variableName="startTime" />
+					<file:write doc:name="Write" doc:id="06256d10-321d-405d-9a64-0b2ae86dcdfe" config-ref="File_Config1" mode="APPEND" path="inMemoryIteratorValidBufferSize.json">
+						<file:content ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></file:content>
+					</file:write>
+					<logger level="INFO" doc:name="Logger" doc:id="dbacbf3b-ce53-41a9-84c7-1f789524c0bb" message='Time Taken to process Batch - #[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}] seconds' />
+				</foreach>
+				<logger level="INFO" doc:name="Logger" doc:id="80395878-5172-40e8-9d55-c1d8fab8acec" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"after": payload[3]&#10;}]' />
+			
+
+</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="02674a72-fc64-4918-a9f8-eac6f5cadbd9" message="Flow: inMemoryIteratorValidBufferSize, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="fileStorageIteratorFlow" doc:id="c7c065ce-9152-4fa0-8c45-8f7662efbf71" >
+		<http:listener doc:name="Listener" doc:id="e27f5a7e-162d-44d5-b877-26e510aaf80d" config-ref="HTTP_Listener_config" path="/api/v1/iterators/fileStorageIterator">
+			<http:response >
+				<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></http:body>
+			</http:response>
+		</http:listener>
+		<db:select doc:name="Select" doc:id="848e3b30-70f6-4834-bb60-8af3955bca20" config-ref="Database_Config" queryTimeout="2" queryTimeoutUnit="MINUTES">
+			<db:sql ><![CDATA[select * from emissions where Country=:country]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	country: 0 as Number
+}]]]></db:input-parameters>
+		
+</db:select>
+		<choice doc:name="Choice" doc:id="501b1dee-9403-4bae-8d42-7fafc42d0937" >
+			<when expression="#[!isEmpty(payload)]">
+				<logger level="INFO" doc:name="Logger" doc:id="0258bb4c-42cd-4be2-b754-20f219e62763" message="Flow: fileStorageIterator, Message: Payload is not empty" />
+				<set-variable value="#[0]" doc:name="Set Variable" doc:id="2512605f-2530-404a-b64d-011c7dc8f518" variableName="batch" />
+				<foreach doc:name="For Each" doc:id="f2ab16fa-6798-4c28-b1d5-a9dbb3c9c293" batchSize="500">
+					<set-variable value="#[vars.batch + 1]" doc:name="Set Variable" doc:id="24051435-5839-41b4-bbc7-d7d0289821b2" variableName="batch" />
+					<set-variable value="#[now()]" doc:name="Set Variable" doc:id="e3b6be96-8d91-471f-980f-949928266cb5" variableName="startTime" />
+					<file:write doc:name="Write" doc:id="682d6cc6-5acf-4c05-9604-e967b92aad2c" config-ref="File_Config1" mode="APPEND" path="fileStorageIterator.json">
+						<file:content ><![CDATA[#[%dw 2.0
+output application/json
+---
+payload]]]></file:content>
+					</file:write>
+					<logger level="INFO" doc:name="Logger" doc:id="e3dcc6c8-1595-478f-8b54-c3561c5bef56" message='Time Taken to process Batch - #[vars.batch]: #[(now() - vars.startTime as DateTime) as Number {unit: "seconds"}] seconds' />
+				</foreach>
+				<logger level="INFO" doc:name="Logger" doc:id="fbb87715-d12e-475b-9b80-3790e4f6ac8f" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"after": payload[3]&#10;}]' />
+			
+
+</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="0b49a24a-63c6-4f5e-83db-0267c75b3fb8" message="Flow: fileStorageIterator, Message: Payload is empty" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
